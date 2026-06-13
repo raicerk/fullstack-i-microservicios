@@ -1,0 +1,10 @@
+com/duoc/categorias/repository/CategoriaRepository.class
+com/duoc/categorias/dto/CategoriaDTO.class
+com/duoc/categorias/config/SwaggerConfig.class
+com/duoc/categorias/exception/CategoriaNotFoundException.class
+com/duoc/categorias/model/Categoria.class
+com/duoc/categorias/controller/CategoriasController.class
+com/duoc/categorias/service/CategoriaService.class
+com/duoc/categorias/exception/GlobalExceptionHandler.class
+com/duoc/categorias/dto/CategoriaRequest.class
+com/duoc/categorias/CategoriasApplication.class

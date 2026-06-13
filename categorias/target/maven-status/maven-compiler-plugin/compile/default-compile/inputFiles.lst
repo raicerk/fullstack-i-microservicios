@@ -1,0 +1,10 @@
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/CategoriasApplication.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/config/SwaggerConfig.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/controller/CategoriasController.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/dto/CategoriaDTO.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/dto/CategoriaRequest.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/exception/CategoriaNotFoundException.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/exception/GlobalExceptionHandler.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/model/Categoria.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/repository/CategoriaRepository.java
+/Users/raicerk/Código/microservicios/categorias/src/main/java/com/duoc/categorias/service/CategoriaService.java

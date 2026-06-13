@@ -1,0 +1,119 @@
+networks:
+  microservicios-net:
+    driver: bridge
+
+services:
+  # --- BASES DE DATOS ---
+  db-productos:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: db_productos
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservicios-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db-clientes:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: db_clientes
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservicios-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db-categorias:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: db_categorias
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - microservicios-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- MICROSERVICIOS ---
+  eureka:
+    build: ./eureka
+    container_name: eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - microservicios-net
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    depends_on:
+      - eureka
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+    ports:
+      - "8080:8080"
+    networks:
+      - microservicios-net
+
+  productos:
+    build: ./productos
+    container_name: productos
+    depends_on:
+      db-productos:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+      categorias:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-productos:3306/db_productos
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - CATEGORIAS_API_URL=http://categorias:8083/api/v1
+    networks:
+      - microservicios-net
+
+  clientes:
+    build: ./clientes
+    container_name: clientes
+    depends_on:
+      db-clientes:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-clientes:3306/db_clientes
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+    networks:
+      - microservicios-net
+
+  categorias:
+    build: ./categorias
+    container_name: categorias
+    depends_on:
+      db-categorias:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-categorias:3306/db_categorias
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+    networks:
+      - microservicios-net
