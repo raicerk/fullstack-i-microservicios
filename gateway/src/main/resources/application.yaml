@@ -23,7 +23,41 @@ spring:
           predicates:
             - Path=/api/v1/categorias/**
 
+        - id: productos-api-docs
+          uri: lb://PRODUCTOS
+          predicates:
+            - Path=/v3/api-docs/productos
+          filters:
+            - RewritePath=/v3/api-docs/productos, /v3/api-docs
+
+        - id: clientes-api-docs
+          uri: lb://CLIENTES
+          predicates:
+            - Path=/v3/api-docs/clientes
+          filters:
+            - RewritePath=/v3/api-docs/clientes, /v3/api-docs
+
+        - id: categorias-api-docs
+          uri: lb://CATEGORIAS
+          predicates:
+            - Path=/v3/api-docs/categorias
+          filters:
+            - RewritePath=/v3/api-docs/categorias, /v3/api-docs
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: productos
+        url: /v3/api-docs/productos
+      - name: clientes
+        url: /v3/api-docs/clientes
+      - name: categorias
+        url: /v3/api-docs/categorias

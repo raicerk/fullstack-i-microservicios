@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Productos - React SPA Completa</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const API_URL = 'http://localhost:8080/api/v1/productos'; 
+        const CATEGORIES_API_URL = 'https://api.escuelajs.co/api/v1/categories'; 
+
+        function App() {
+            // --- ESTADOS ---
+            const [productos, setProductos] = useState([]);
+            const [categories, setCategories] = useState([]); 
+            const [loading, setLoading] = useState(false);
+            const [loadingCategories, setLoadingCategories] = useState(false);
+            const [errorState, setErrorState] = useState('');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [isSearchActive, setIsSearchActive] = useState(false);
+            
+            const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+            
+            // Estado del Modal de Productos
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [formData, setFormData] = useState({
+                id: '', nombre: '', cantidad: '', precio: '', categoria: ''
+            });
+
+            // NUEVO: Estado del Modal de Categorías
+            const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+            const [categoryFormData, setCategoryFormData] = useState({
+                name: '', image: ''
+            });
+
+            const clpFormatter = new Intl.NumberFormat('es-CL', {
+                style: 'currency',
+                currency: 'CLP',
+                minimumFractionDigits: 0
+            });
+
+            // --- EFECTOS ---
+            useEffect(() => {
+                loadProducts();
+                loadExternalCategories(); 
+            }, []);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ visible: true, message, type });
+                setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 4000);
+            };
+
+            // --- PETICIÓN: OBTENER CATEGORÍAS ---
+            const loadExternalCategories = async () => {
+                setLoadingCategories(true);
+                try {
+                    const response = await fetch(CATEGORIES_API_URL);
+                    if (!response.ok) throw new Error();
+                    const data = await response.json();
+                    // Traemos las últimas o limitamos para que se vean las nuevas que agregues
+                    setCategories(data.reverse().slice(0, 12)); 
+                } catch (err) {
+                    console.error("No se pudieron cargar las categorías externas.");
+                } finally {
+                    setLoadingCategories(false);
+                }
+            };
+
+            // NUEVO: PETICIÓN POST PARA CREAR CATEGORÍA
+            const handleCategorySubmit = async (e) => {
+                e.preventDefault();
+                
+                // Si el usuario no ingresa una imagen, usamos un placeholder automático con Picsum
+                const imageUrl = categoryFormData.image.trim() || `https://picsum.photos/640/480?random=${Math.floor(Math.random() * 1000)}`;
+
+                const payload = {
+                    name: categoryFormData.name.trim(),
+                    image: imageUrl
+                };
+
+                try {
+                    const response = await fetch(CATEGORIES_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        showToast('¡Nueva categoría creada en Platzi API!', 'success');
+                        setIsCategoryModalOpen(false); // Cerrar modal
+                        setCategoryFormData({ name: '', image: '' }); // Limpiar formulario
+                        loadExternalCategories(); // Recargar la lista y los dropdowns automáticamente
+                    } else {
+                        showToast('Error de validación en la API de Platzi.', 'danger');
+                    }
+                } catch (err) {
+                    showToast('Error de red al intentar crear la categoría.', 'danger');
+                }
+            };
+
+            // --- PETICIONES API PRODUCTOS ---
+            const loadProducts = async (filterName = '') => {
+                setLoading(true);
+                setErrorState('');
+                try {
+                    const url = filterName ? `${API_URL}?nombre=${encodeURIComponent(filterName)}` : API_URL;
+                    const response = await fetch(url);
+                    
+                    if (response.status === 204) {
+                        setProductos([]);
+                        setErrorState(filterName ? 'No se encontraron productos coincidentes.' : 'No hay productos en el inventario.');
+                        return;
+                    }
+
+                    if (!response.ok) throw new Error();
+
+                    const data = await response.json();
+                    setProductos(data);
+                    if (data.length === 0) setErrorState('No hay productos que mostrar.');
+                } catch (err) {
+                    setProductos([]);
+                    setErrorState('Error de conexión con el backend local (puerto 8080).');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleEditClick = async (id) => {
+                try {
+                    const response = await fetch(`${API_URL}/${id}`);
+                    if (!response.ok) throw new Error();
+                    const p = await response.json();
+                    
+                    setFormData({
+                        id: p.id, nombre: p.nombre || '', cantidad: p.cantidad, precio: p.precio, categoria: p.categoria || ''
+                    });
+                    setIsModalOpen(true);
+                } catch (err) {
+                    showToast('No se pudieron recuperar los datos del producto.', 'danger');
+                }
+            };
+
+            const handleDeleteClick = async (id) => {
+                if (!confirm(`¿Estás seguro de eliminar el producto #${id}?`)) return;
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                    if (response.status === 204 || response.ok) {
+                        showToast('Producto eliminado correctamente', 'success');
+                        loadProducts(isSearchActive ? searchTerm : '');
+                    } else {
+                        showToast('El producto no existe o ya fue eliminado.', 'danger');
+                    }
+                } catch (err) {
+                    showToast('Error al intentar eliminar el producto.', 'danger');
+                }
+            };
+
+            const handleFormSubmit = async (e) => {
+                e.preventDefault();
+                const payload = {
+                    nombre: formData.nombre.trim() || null,
+                    cantidad: parseInt(formData.cantidad, 10),
+                    precio: parseInt(formData.precio, 10),
+                    categoria: formData.categoria || null
+                };
+
+                const isEdit = !!formData.id;
+                const url = isEdit ? `${API_URL}/${formData.id}` : API_URL;
+                const method = isEdit ? 'PUT' : 'POST';
+
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        showToast(isEdit ? 'Producto actualizado' : 'Producto creado', 'success');
+                        closeModal();
+                        loadProducts();
+                    } else {
+                        const msg = response.status === 404 ? 'Categoría no registrada o producto ausente.' : 'Campos inválidos.';
+                        showToast(`Error (${response.status}): ${msg}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Error de red al intentar guardar el producto.', 'danger');
+                }
+            };
+
+            // --- MANEJADORES DE INTERFAZ ---
+            const handleSearchSubmit = (e) => {
+                e.preventDefault();
+                const term = searchTerm.trim();
+                setIsSearchActive(!!term);
+                loadProducts(term);
+            };
+
+            const handleClearSearch = () => {
+                setSearchTerm('');
+                setIsSearchActive(false);
+                loadProducts();
+            };
+
+            const openCreateModal = () => {
+                setFormData({ id: '', nombre: '', cantidad: '', precio: '', categoria: '' });
+                setIsModalOpen(true);
+            };
+
+            const closeModal = () => setIsModalOpen(false);
+
+            return (
+                <div>
+                    {/* Navbar */}
+                    <header class="bg-indigo-600 text-white shadow-md">
+                        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">📦</span>
+                                <div>
+                                    <h1 class="text-xl font-bold tracking-tight">API Gestión de Productos</h1>
+                                    <p class="text-xs text-indigo-200">Panel de Control Total (Productos + Categorías Externas)</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 bg-indigo-700 px-3 py-1.5 rounded-lg text-xs font-mono">
+                                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                <span>SPA React Multi-API</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Contenido Principal */}
+                    <main class="max-w-7xl mx-auto px-4 py-8">
+                        
+                        {/* Buscador y Botón */}
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <form onSubmit={handleSearchSubmit} class="w-full sm:w-auto flex flex-1 max-w-md gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar producto por nombre..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                />
+                                <button type="submit" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition">
+                                    Buscar
+                                </button>
+                                {isSearchActive && (
+                                    <button type="button" onClick={handleClearSearch} class="text-slate-500 hover:text-slate-800 text-sm px-2">
+                                        Limpiar
+                                    </button>
+                                )}
+                            </form>
+
+                            <button onClick={openCreateModal} class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow flex items-center justify-center gap-2 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Nuevo Producto
+                            </button>
+                        </div>
+
+                        {/* Layout de 2 Columnas */}
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            
+                            {/* COLUMNA IZQUIERDA: Listado de Productos */}
+                            <div class="lg:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                                <th class="px-6 py-4">ID</th>
+                                                <th class="px-6 py-4">Nombre</th>
+                                                <th class="px-6 py-4">Categoría</th>
+                                                <th class="px-6 py-4 text-right">Stock</th>
+                                                <th class="px-6 py-4 text-right">Precio</th>
+                                                <th class="px-6 py-4 text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100 text-sm">
+                                            {!loading && productos.map(p => (
+                                                <tr key={p.id} class="hover:bg-slate-50 transition">
+                                                    <td class="px-6 py-4 font-mono text-xs text-slate-400 font-bold">#{p.id}</td>
+                                                    <td class="px-6 py-4 font-medium text-slate-900">{p.nombre || <span class="text-slate-400 italic">Sin nombre</span>}</td>
+                                                    <td class="px-6 py-4">
+                                                        <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-xs font-semibold border border-indigo-100">
+                                                            {p.categoria || 'Sin Categoría'}
+                                                        </span>
+                                                    </td>
+                                                    <td class={`px-6 py-4 text-right font-medium ${p.cantidad <= 0 ? 'text-red-500 font-bold' : 'text-slate-600'}`}>
+                                                        {p.cantidad}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-right font-semibold text-slate-900">
+                                                        {clpFormatter.format(p.precio)}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-center space-x-1">
+                                                        <button onClick={() => handleEditClick(p.id)} class="inline-flex items-center p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                        </button>
+                                                        <button onClick={() => handleDeleteClick(p.id)} class="inline-flex items-center p-1.5 text-red-600 hover:bg-red-50 rounded-md transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {(loading || errorState) && (
+                                    <div class="p-12 text-center text-slate-500">
+                                        <span class="text-4xl block mb-2">{loading ? '⏳' : '🔍'}</span>
+                                        <p class={errorState.includes('Error') ? 'text-red-500 font-medium' : ''}>
+                                            {loading ? 'Consultando inventario local...' : errorState}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* COLUMNA DERECHA: Listado y Botón de Nueva Categoría */}
+                            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-fit">
+                                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <span>🏷️</span> Categorías
+                                    </h2>
+                                    {/* BOTÓN PARA ABRIR CREACIÓN DE CATEGORÍA */}
+                                    <button 
+                                        onClick={() => setIsCategoryModalOpen(true)}
+                                        class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs px-2 py-1 rounded-md font-bold transition flex items-center gap-1"
+                                    >
+                                        <span>+</span> Añadir
+                                    </button>
+                                </div>
+
+                                {loadingCategories ? (
+                                    <p class="text-xs text-slate-400 italic py-4">Sincronizando categorías...</p>
+                                ) : (
+                                    <div class="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+                                        {categories.map(cat => (
+                                            <div key={cat.id} class="flex items-center gap-3 p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition">
+                                                <img 
+                                                    src={cat.image} 
+                                                    alt={cat.name} 
+                                                    class="w-9 h-9 rounded-md object-cover bg-slate-100 border border-slate-200 shadow-sm"
+                                                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Cat'; }}
+                                                />
+                                                <div>
+                                                    <h3 class="text-sm font-semibold text-slate-700 truncate max-w-[140px]">{cat.name}</h3>
+                                                    <p class="text-[10px] font-mono text-slate-400 font-medium">ID: #{cat.id}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>
+                    </main>
+
+                    {/* MODAL 1: Formulario de Productos */}
+                    {isModalOpen && (
+                        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40">
+                            <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden">
+                                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-slate-800">
+                                        {formData.id ? 'Actualizar Producto' : 'Crear Producto'}
+                                    </h3>
+                                    <button onClick={closeModal} class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                                </div>
+                                
+                                <form onSubmit={handleFormSubmit} class="p-6 space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nombre del Producto</label>
+                                        <input 
+                                            type="text" required placeholder="Ej. Audífonos Sony XM5" 
+                                            value={formData.nombre}
+                                            onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                        />
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cantidad *</label>
+                                            <input 
+                                                type="number" required min="0" value={formData.cantidad}
+                                                onChange={(e) => setFormData({...formData, cantidad: e.target.value})}
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Precio (CLP) *</label>
+                                            <input 
+                                                type="number" required min="0" value={formData.precio}
+                                                onChange={(e) => setFormData({...formData, precio: e.target.value})}
+                                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Categoría Oficial *</label>
+                                        <select 
+                                            value={formData.categoria}
+                                            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-sm"
+                                            required
+                                        >
+                                            <option value="">-- Selecciona una categoría --</option>
+                                            {categories.map(cat => (
+                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                                        <button type="button" onClick={closeModal} class="px-4 py-2 rounded-lg text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">Cancelar</button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow">Guardar Producto</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NUEVO MODAL 2: Formulario para añadir Categoría */}
+                    {isCategoryModalOpen && (
+                        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden">
+                                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-slate-800">Nueva Categoría Externa</h3>
+                                    <button onClick={() => setIsCategoryModalOpen(false)} class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                                </div>
+                                
+                                <form onSubmit={handleCategorySubmit} class="p-6 space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nombre de la Categoría *</label>
+                                        <input 
+                                            type="text" required placeholder="Ej. Deportes, Libros, Hogar" 
+                                            value={categoryFormData.name}
+                                            onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">URL de la Imagen (Opcional)</label>
+                                        <input 
+                                            type="url" placeholder="https://ejemplo.com/foto.jpg" 
+                                            value={categoryFormData.image}
+                                            onChange={(e) => setCategoryFormData({...categoryFormData, image: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                        />
+                                        <p class="text-[10px] text-slate-400 mt-1">Si la dejas vacía, asignaremos una imagen aleatoria automáticamente.</p>
+                                    </div>
+
+                                    <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                                        <button type="button" onClick={() => setIsCategoryModalOpen(false)} class="px-4 py-2 rounded-lg text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow">
+                                            Crear Categoría
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Toast Alertas */}
+                    {toast.visible && (
+                        <div class={`fixed bottom-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-lg text-sm font-medium text-white transition-all duration-300 ${
+                            toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+                        }`}>
+                            {toast.message}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
