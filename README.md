@@ -23,6 +23,7 @@ microservicios/
 ├── productos/      # Microservicio de productos (puerto 8082)
 ├── clientes/       # Microservicio de clientes (puerto 8081)
 ├── categorias/     # Microservicio de categorías (puerto 8083)
+├── ventas/         # Microservicio de ventas (puerto 8084)
 └── docker-compose.yml
 ```
 
@@ -32,12 +33,13 @@ microservicios/
 |-----------------|--------------------------|--------|
 | `db-productos`  | MySQL para productos     | -      |
 | `db-clientes`   | MySQL para clientes      | -      |
-| `db-categorias` | MySQL para categorías    | -      |
+| `db-ventas`     | MySQL para ventas        | -      |
 | `eureka`        | Eureka Server            | 8761   |
 | `gateway`       | API Gateway              | 8080   |
 | `productos`     | Microservicio productos  | -      |
 | `clientes`      | Microservicio clientes   | -      |
 | `categorias`    | Microservicio categorías | -      |
+| `ventas`        | Microservicio ventas     | -      |
 
 ## Como levantar el proyecto
 
@@ -74,7 +76,7 @@ docker compose logs -f
 | Swagger UI (agregado)  | http://localhost:8080/swagger-ui.html    |
 | API Productos          | http://localhost:8080/api/v1/productos   |
 | API Clientes           | http://localhost:8080/api/v1/clientes    |
-| API Categorías         | http://localhost:8080/api/v1/categorias  |
+| API Ventas             | http://localhost:8080/api/v1/ventas      |
 
 ## Swagger UI
 

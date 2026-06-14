@@ -9,6 +9,8 @@ services:
     environment:
       MYSQL_DATABASE: db_productos
       MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
     networks:
       - microservicios-net
     healthcheck:
@@ -23,6 +25,8 @@ services:
     environment:
       MYSQL_DATABASE: db_clientes
       MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3308:3306"
     networks:
       - microservicios-net
     healthcheck:
@@ -37,6 +41,24 @@ services:
     environment:
       MYSQL_DATABASE: db_categorias
       MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3309:3306"
+    networks:
+      - microservicios-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db-ventas:
+    image: mysql
+    environment:
+      MYSQL_DATABASE: db_ventas
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3310:3306"
     networks:
       - microservicios-net
     healthcheck:
@@ -115,5 +137,27 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+    networks:
+      - microservicios-net
+
+  ventas:
+    build: ./ventas
+    container_name: ventas
+    depends_on:
+      db-ventas:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+      clientes:
+        condition: service_started
+      productos:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-ventas:3306/db_ventas
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - CLIENTES_API_URL=http://clientes:8081/api/v1
+      - PRODUCTOS_API_URL=http://productos:8082/api/v1
     networks:
       - microservicios-net

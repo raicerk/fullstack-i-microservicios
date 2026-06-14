@@ -23,6 +23,7 @@
         const PRODUCTOS_API_URL = `${GATEWAY_URL}/productos`;
         const CATEGORIAS_API_URL = `${GATEWAY_URL}/categorias`;
         const CLIENTES_API_URL  = `${GATEWAY_URL}/clientes`;
+        const VENTAS_API_URL    = `${GATEWAY_URL}/ventas`;
 
         function App() {
             // --- TAB ACTIVO ---
@@ -103,6 +104,15 @@
             const [isSearchProductoActive, setIsSearchProductoActive] = useState(false);
             const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
             const [productoFormData, setProductoFormData] = useState({ id: '', nombre: '', cantidad: '', precio: '', categoria: '' });
+
+            // =====================================================================
+            // ESTADO: VENTAS
+            // =====================================================================
+            const [ventas, setVentas] = useState([]);
+            const [loadingVentas, setLoadingVentas] = useState(false);
+            const [errorVentas, setErrorVentas] = useState('');
+            const [isVentaModalOpen, setIsVentaModalOpen] = useState(false);
+            const [ventaFormData, setVentaFormData] = useState({ clienteId: '', productoId: '', cantidad: '', notas: '' });
 
             const clpFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 });
 
@@ -273,11 +283,72 @@
                 }
             };
 
+            const loadVentas = async () => {
+                setLoadingVentas(true);
+                setErrorVentas('');
+                try {
+                    const response = await fetch(VENTAS_API_URL);
+                    if (response.status === 204) { setVentas([]); setErrorVentas('No hay ventas registradas.'); return; }
+                    if (!response.ok) throw new Error();
+                    setVentas(await response.json());
+                } catch (err) {
+                    setVentas([]);
+                    setErrorVentas('Error de conexión con el gateway (puerto 8080).');
+                } finally {
+                    setLoadingVentas(false);
+                }
+            };
+
+            const handleVentaFormSubmit = async (e) => {
+                e.preventDefault();
+                const payload = {
+                    clienteId: parseInt(ventaFormData.clienteId, 10),
+                    productoId: parseInt(ventaFormData.productoId, 10),
+                    cantidad: parseInt(ventaFormData.cantidad, 10),
+                    notas: ventaFormData.notas.trim() || null
+                };
+                try {
+                    const response = await fetch(VENTAS_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.status === 201) {
+                        showToast('Venta registrada correctamente', 'success');
+                        setIsVentaModalOpen(false);
+                        setVentaFormData({ clienteId: '', productoId: '', cantidad: '', notas: '' });
+                        loadVentas();
+                    } else {
+                        const body = await response.json().catch(() => ({}));
+                        const msg = body.error || 'Datos inválidos o cliente/producto no encontrado.';
+                        showToast(`Error (${response.status}): ${msg}`, 'danger');
+                    }
+                } catch (err) {
+                    showToast('Error de red al registrar la venta.', 'danger');
+                }
+            };
+
+            const handleDeleteVenta = async (id) => {
+                if (!confirm(`¿Estás seguro de eliminar la venta #${id}?`)) return;
+                try {
+                    const response = await fetch(`${VENTAS_API_URL}/${id}`, { method: 'DELETE' });
+                    if (response.status === 204) {
+                        showToast('Venta eliminada correctamente', 'success');
+                        loadVentas();
+                    } else {
+                        showToast('No se pudo eliminar la venta.', 'danger');
+                    }
+                } catch (err) {
+                    showToast('Error al intentar eliminar la venta.', 'danger');
+                }
+            };
+
             // --- CARGA INICIAL ---
             useEffect(() => {
                 loadProducts();
                 loadCategories();
                 loadClientes();
+                loadVentas();
             }, []);
 
             // =====================================================================
@@ -306,7 +377,8 @@
                             {[
                                 { key: 'productos',  label: '📦 Productos' },
                                 { key: 'clientes',   label: '👤 Clientes' },
-                                { key: 'categorias', label: '🏷️ Categorías' }
+                                { key: 'categorias', label: '🏷️ Categorías' },
+                                { key: 'ventas',     label: '🧾 Ventas' }
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -513,6 +585,74 @@
                             </div>
                         )}
 
+                        {/* ============================== TAB: VENTAS ============================== */}
+                        {activeTab === 'ventas' && (
+                            <div>
+                                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex justify-end">
+                                    <button onClick={() => { setVentaFormData({ clienteId: '', productoId: '', cantidad: '', notas: '' }); setIsVentaModalOpen(true); }}
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow flex items-center gap-2 transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Nueva Venta
+                                    </button>
+                                </div>
+
+                                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                                                    <th class="px-4 py-4">ID</th>
+                                                    <th class="px-4 py-4">Cliente</th>
+                                                    <th class="px-4 py-4">Producto</th>
+                                                    <th class="px-4 py-4 text-right">Cant.</th>
+                                                    <th class="px-4 py-4 text-right">P. Unitario</th>
+                                                    <th class="px-4 py-4 text-right">Total</th>
+                                                    <th class="px-4 py-4">Fecha</th>
+                                                    <th class="px-4 py-4">Notas</th>
+                                                    <th class="px-4 py-4 text-center">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100 text-sm">
+                                                {!loadingVentas && ventas.map(v => (
+                                                    <tr key={v.id} class="hover:bg-slate-50 transition">
+                                                        <td class="px-4 py-4 font-mono text-xs text-slate-400 font-bold">#{v.id}</td>
+                                                        <td class="px-4 py-4">
+                                                            <div class="font-medium text-slate-900">{v.nombreCliente}</div>
+                                                            <div class="text-xs text-slate-400">ID: {v.clienteId}</div>
+                                                        </td>
+                                                        <td class="px-4 py-4">
+                                                            <div class="font-medium text-slate-900">{v.nombreProducto}</div>
+                                                            <div class="text-xs text-slate-400">ID: {v.productoId}</div>
+                                                        </td>
+                                                        <td class="px-4 py-4 text-right font-medium">{v.cantidad}</td>
+                                                        <td class="px-4 py-4 text-right text-slate-600">{clpFormatter.format(v.precioUnitario)}</td>
+                                                        <td class="px-4 py-4 text-right font-semibold text-slate-900">{clpFormatter.format(v.totalVenta)}</td>
+                                                        <td class="px-4 py-4 text-xs text-slate-500 whitespace-nowrap">
+                                                            {new Date(v.fechaVenta).toLocaleString('es-CL')}
+                                                        </td>
+                                                        <td class="px-4 py-4 text-xs text-slate-500 max-w-[120px] truncate">{v.notas || '-'}</td>
+                                                        <td class="px-4 py-4 text-center">
+                                                            <button onClick={() => handleDeleteVenta(v.id)} class="inline-flex items-center p-1.5 text-red-600 hover:bg-red-50 rounded-md transition">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {(loadingVentas || errorVentas) && (
+                                        <div class="p-12 text-center text-slate-500">
+                                            <span class="text-4xl block mb-2">{loadingVentas ? '⏳' : '🧾'}</span>
+                                            <p class={errorVentas.includes('Error') ? 'text-red-500 font-medium' : ''}>
+                                                {loadingVentas ? 'Cargando ventas...' : errorVentas}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                     </main>
 
                     {/* MODAL: Productos */}
@@ -612,6 +752,58 @@
                                     <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
                                         <button type="button" onClick={() => setIsCategoryModalOpen(false)} class="px-4 py-2 rounded-lg text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">Cancelar</button>
                                         <button type="submit" class="px-4 py-2 rounded-lg text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow">Crear Categoría</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: Ventas */}
+                    {isVentaModalOpen && (
+                        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40">
+                            <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden">
+                                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                                    <h3 class="text-lg font-bold text-slate-800">Registrar Venta</h3>
+                                    <button onClick={() => setIsVentaModalOpen(false)} class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                                </div>
+                                <form onSubmit={handleVentaFormSubmit} class="p-6 space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">ID del Cliente *</label>
+                                        <select required value={ventaFormData.clienteId}
+                                            onChange={(e) => setVentaFormData({...ventaFormData, clienteId: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-sm">
+                                            <option value="">-- Selecciona un cliente --</option>
+                                            {clientes.map(c => (
+                                                <option key={c.id} value={c.id}>#{c.id} — {c.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Producto *</label>
+                                        <select required value={ventaFormData.productoId}
+                                            onChange={(e) => setVentaFormData({...ventaFormData, productoId: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-sm">
+                                            <option value="">-- Selecciona un producto --</option>
+                                            {productos.map(p => (
+                                                <option key={p.id} value={p.id}>#{p.id} — {p.nombre} ({clpFormatter.format(p.precio)})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cantidad *</label>
+                                        <input type="number" required min="1" value={ventaFormData.cantidad}
+                                            onChange={(e) => setVentaFormData({...ventaFormData, cantidad: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Notas (opcional)</label>
+                                        <input type="text" placeholder="Ej. Despacho a domicilio" value={ventaFormData.notas}
+                                            onChange={(e) => setVentaFormData({...ventaFormData, notas: e.target.value})}
+                                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+                                    </div>
+                                    <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+                                        <button type="button" onClick={() => setIsVentaModalOpen(false)} class="px-4 py-2 rounded-lg text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">Cancelar</button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow">Registrar Venta</button>
                                     </div>
                                 </form>
                             </div>
