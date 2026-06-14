@@ -1,0 +1,23 @@
+# ─── Etapa 1: Compilación ────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
+WORKDIR /app
+
+COPY pom.xml .
+COPY .mvn/ .mvn/
+COPY mvnw .
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -q
+
+COPY src/ src/
+RUN ./mvnw clean package -DskipTests -q
+
+# ─── Etapa 2: Imagen final ────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/target/ventas-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8084
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
