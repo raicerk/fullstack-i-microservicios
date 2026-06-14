@@ -24,7 +24,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/ventas")
 @Tag(name = "Ventas", description = "Operaciones relacionadas con la gestión de ventas")
-@CrossOrigin(origins = "*")
 public class VentaController {
 
     @Autowired
