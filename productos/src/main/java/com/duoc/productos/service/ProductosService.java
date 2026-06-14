@@ -30,7 +30,6 @@ public class ProductosService {
 
         Productos producto = new Productos();
         producto.setNombre(request.getNombre());
-        producto.setCantidad(request.getCantidad());
         producto.setPrecio(request.getPrecio());
         producto.setCategoria(request.getCategoria());
 
@@ -58,7 +57,6 @@ public class ProductosService {
                 .orElseThrow(() -> new ProductoNotFoundException(id));
 
         productoExistente.setNombre(request.getNombre());
-        productoExistente.setCantidad(request.getCantidad());
         productoExistente.setPrecio(request.getPrecio());
         productoExistente.setCategoria(request.getCategoria());
 
@@ -89,7 +87,6 @@ public class ProductosService {
         ProductoDTO dto = new ProductoDTO();
         dto.setId(producto.getId());
         dto.setNombre(producto.getNombre());
-        dto.setCantidad(producto.getCantidad());
         dto.setPrecio(producto.getPrecio());
         dto.setCategoria(producto.getCategoria());
         return dto;

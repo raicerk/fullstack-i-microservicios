@@ -57,13 +57,11 @@ class ProductosControllerTest {
         productoDTO = new ProductoDTO();
         productoDTO.setId(1);
         productoDTO.setNombre("Teclado Gamer");
-        productoDTO.setCantidad(10);
         productoDTO.setPrecio(39990);
         productoDTO.setCategoria("Electronics");
 
         requestValido = new ProductoRequest();
         requestValido.setNombre("Teclado Gamer");
-        requestValido.setCantidad(10);
         requestValido.setPrecio(39990);
         requestValido.setCategoria("Electronics");
     }
@@ -85,7 +83,6 @@ class ProductosControllerTest {
                 .andExpect(status().isCreated())                          // 201
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.nombre").value("Teclado Gamer"))
-                .andExpect(jsonPath("$.cantidad").value(10))
                 .andExpect(jsonPath("$.precio").value(39990))
                 .andExpect(jsonPath("$.categoria").value("Electronics"));
     }
@@ -93,10 +90,9 @@ class ProductosControllerTest {
     @Test
     @DisplayName("POST /api/v1/productos: debería retornar 400 cuando los datos son inválidos")
     void shouldRetornar400CuandoDatosInvalidos() throws Exception {
-        // Given: request con nombre vacío, cantidad negativa y precio nulo
+        // Given: request con nombre vacío y precio nulo
         ProductoRequest requestInvalido = new ProductoRequest();
         requestInvalido.setNombre("");       // @NotBlank falla
-        requestInvalido.setCantidad(-5);     // @Positive falla
         requestInvalido.setPrecio(null);     // @NotNull falla
         requestInvalido.setCategoria("");    // @NotBlank falla
 

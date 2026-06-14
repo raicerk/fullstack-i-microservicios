@@ -12,11 +12,6 @@ public class ProductoRequest {
     @NotBlank(message = "El nombre no puede estar vacío")
     private String nombre;
 
-    @Schema(description = "Cantidad disponible en inventario", example = "10")
-    @Positive(message = "La cantidad debe ser mayor a cero")
-    @NotNull(message = "La cantidad es obligatoria")
-    private Integer cantidad;
-
     @Schema(description = "Precio del producto en pesos chilenos", example = "39990")
     @Positive(message = "El precio debe ser mayor a cero")
     @NotNull(message = "El precio es obligatorio")

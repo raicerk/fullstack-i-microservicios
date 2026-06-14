@@ -20,9 +20,6 @@ public class Productos {
     private String nombre;
 
     @Column(nullable = false, length = 100)
-    private Integer cantidad;
-
-    @Column(nullable = false, length = 100)
     private Integer precio;
 
     @Column(nullable = false, length = 100)

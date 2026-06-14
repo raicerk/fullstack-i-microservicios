@@ -13,9 +13,6 @@ public class ProductoDTO {
     @Schema(description = "Nombre del producto", example = "Teclado Gamer Razer")
     private String nombre;
 
-    @Schema(description = "Cantidad disponible en inventario", example = "10")
-    private Integer cantidad;
-
     @Schema(description = "Precio del producto en pesos chilenos", example = "39990")
     private Integer precio;
 

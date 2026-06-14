@@ -57,12 +57,11 @@ class ProductosServiceTest {
     @BeforeEach
     void setUp() {
         // Producto ya guardado en BD (tiene ID asignado)
-        productoGuardado = new Productos(1, "Teclado Gamer", 10, 39990, "Electronics");
+        productoGuardado = new Productos(1, "Teclado Gamer", 39990, "Electronics");
 
         // Request que llega desde el cliente (sin ID)
         request = new ProductoRequest();
         request.setNombre("Teclado Gamer");
-        request.setCantidad(10);
         request.setPrecio(39990);
         request.setCategoria("Electronics");
 
@@ -89,7 +88,6 @@ class ProductosServiceTest {
         assertNotNull(resultado);
         assertEquals(1, resultado.getId());
         assertEquals("Teclado Gamer", resultado.getNombre());
-        assertEquals(10, resultado.getCantidad());
         assertEquals(39990, resultado.getPrecio());
         assertEquals("Electronics", resultado.getCategoria());
 
@@ -120,7 +118,7 @@ class ProductosServiceTest {
     @DisplayName("listar: debería retornar todos los productos como lista de DTOs")
     void shouldListarTodosLosProductos() {
         // Given: el repositorio tiene dos productos
-        Productos otroProducto = new Productos(2, "Mouse Gamer", 20, 27990, "Electronics");
+        Productos otroProducto = new Productos(2, "Mouse Gamer", 27990, "Electronics");
         when(productosRepository.findAll()).thenReturn(List.of(productoGuardado, otroProducto));
 
         // When
@@ -184,9 +182,8 @@ class ProductosServiceTest {
     @DisplayName("actualizar: debería actualizar el producto y retornar el DTO con los nuevos datos")
     void shouldActualizarProductoCorrectamente() {
         // Given
-        Productos productoActualizado = new Productos(1, "Teclado Gamer RGB", 15, 45000, "Electronics");
+        Productos productoActualizado = new Productos(1, "Teclado Gamer RGB", 45000, "Electronics");
         request.setNombre("Teclado Gamer RGB");
-        request.setCantidad(15);
         request.setPrecio(45000);
 
         when(categoriaClient.obtenerCategorias()).thenReturn(List.of(categoriaValida));
@@ -199,7 +196,6 @@ class ProductosServiceTest {
         // Then
         assertNotNull(resultado);
         assertEquals("Teclado Gamer RGB", resultado.getNombre());
-        assertEquals(15, resultado.getCantidad());
         assertEquals(45000, resultado.getPrecio());
         verify(productosRepository, times(1)).save(any(Productos.class));
     }
