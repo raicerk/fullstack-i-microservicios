@@ -17,7 +17,7 @@ public class ProductoRequest {
     @NotNull(message = "El precio es obligatorio")
     private Integer precio;
 
-    @Schema(description = "Categoría del producto (debe existir en Platzi Fake Store API)", example = "Electronics")
+    @Schema(description = "Categoría del producto (debe existir en el microservicio de Categorías)", example = "Electronica")
     @NotBlank(message = "La categoría no puede estar vacía")
     private String categoria;
 }

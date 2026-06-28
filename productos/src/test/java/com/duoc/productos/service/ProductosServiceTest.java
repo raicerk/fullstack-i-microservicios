@@ -65,7 +65,7 @@ class ProductosServiceTest {
         request.setPrecio(39990);
         request.setCategoria("Electronics");
 
-        // Categoría válida que retorna la Platzi API
+        // Categoría válida que retorna el microservicio de Categorías
         categoriaValida = new CategoriaDTO();
         categoriaValida.setName("Electronics");
     }

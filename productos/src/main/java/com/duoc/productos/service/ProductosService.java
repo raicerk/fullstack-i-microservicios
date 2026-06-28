@@ -75,7 +75,7 @@ public class ProductosService {
                 .collect(Collectors.toList());
     }
 
-    // Consulta las categorías válidas en Platzi y lanza excepción si la categoría no existe
+    // Consulta las categorías válidas en el microservicio de Categorías y lanza excepción si la categoría no existe
     private void validarCategoria(String categoria) {
         List<CategoriaDTO> categorias = categoriaClient.obtenerCategorias();
         boolean existe = categorias.stream().anyMatch(c -> c.getName().equalsIgnoreCase(categoria));

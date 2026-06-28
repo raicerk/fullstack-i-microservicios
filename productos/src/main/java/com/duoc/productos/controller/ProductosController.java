@@ -29,7 +29,7 @@ public class ProductosController {
     @Autowired
     private ProductosService productosService;
 
-    @Operation(summary = "Crear un producto", description = "Crea un nuevo producto. La categoría es validada contra la Platzi Fake Store API.")
+    @Operation(summary = "Crear un producto", description = "Crea un nuevo producto. La categoría es validada contra el microservicio de Categorías.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Producto creado exitosamente",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductoDTO.class))),
