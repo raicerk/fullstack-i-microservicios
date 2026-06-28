@@ -6,6 +6,8 @@ import com.duoc.ventas.dto.ClienteDTO;
 import com.duoc.ventas.dto.ProductoDTO;
 import com.duoc.ventas.dto.VentaDTO;
 import com.duoc.ventas.dto.VentaRequest;
+import com.duoc.ventas.exception.ClienteNotFoundException;
+import com.duoc.ventas.exception.ProductoNotFoundException;
 import com.duoc.ventas.exception.VentaNotFoundException;
 import com.duoc.ventas.model.Venta;
 import com.duoc.ventas.repository.VentaRepository;
@@ -32,12 +34,20 @@ public class VentaService {
     private ProductoClient productoClient;
 
     public VentaDTO registrar(VentaRequest request) {
-        // Validar cliente vía Feign
-        ClienteDTO cliente = clienteClient.obtenerCliente(request.getClienteId());
+        ClienteDTO cliente;
+        try {
+            cliente = clienteClient.obtenerCliente(request.getClienteId());
+        } catch (FeignException.NotFound ex) {
+            throw new ClienteNotFoundException(request.getClienteId());
+        }
         log.info("Cliente validado: {}", cliente.getNombre());
 
-        // Validar producto vía Feign
-        ProductoDTO producto = productoClient.obtenerProducto(request.getProductoId());
+        ProductoDTO producto;
+        try {
+            producto = productoClient.obtenerProducto(request.getProductoId());
+        } catch (FeignException.NotFound ex) {
+            throw new ProductoNotFoundException(request.getProductoId());
+        }
         log.info("Producto validado: {}", producto.getNombre());
 
         // Calcular totales

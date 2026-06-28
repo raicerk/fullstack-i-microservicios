@@ -1,5 +1,0 @@
-com/example/clientes/exception/GlobalExceptionHandler.class
-com/example/clientes/config/SwaggerConfig.class
-com/example/clientes/dto/ClienteRequest.class
-com/example/clientes/exception/ClienteNotFoundException.class
-com/example/clientes/dto/ClienteDTO.class

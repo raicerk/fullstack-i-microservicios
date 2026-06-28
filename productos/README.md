@@ -14,7 +14,7 @@ Este ejercicio corresponde al ramo **Fullstack I** para estudiantes de **Ingenie
 - Aplicar inyección de dependencias
 - Integrar base de datos MySQL mediante Spring Data JPA
 - Gestionar el esquema de base de datos mediante migraciones con **Flyway**
-- Consumir APIs externas desde el Service mediante **OpenFeign**
+- Consumir microservicios internos desde el Service mediante **OpenFeign**
 - Utilizar el patrón de diseño **CSR (Controller-Service-Repository)**: adaptación de MVC para Spring Boot
 - Implementar **logging** con SLF4J y Logback para registrar eventos importantes de la aplicación
 - Documentar la API con **Swagger UI** usando SpringDoc OpenAPI para que otros desarrolladores puedan explorar y probar los endpoints
@@ -57,11 +57,11 @@ flyway-core 10.11.1
 <!-- Flyway MySQL (Soporte específico para MySQL) -->
 flyway-mysql 10.11.1
 
-<!-- Spring Cloud OpenFeign (Consumo declarativo de APIs externas) -->
+<!-- Spring Cloud OpenFeign (Consumo declarativo de microservicios internos) -->
 spring-cloud-starter-openfeign
 
 <!-- SpringDoc OpenAPI UI (Documentación Swagger automática) -->
-springdoc-openapi-starter-webmvc-ui 2.6.0
+springdoc-openapi-starter-webmvc-ui 2.8.6
 
 <!-- Spring Boot Starter Test (Pruebas unitarias) -->
 spring-boot-starter-test
@@ -90,7 +90,7 @@ Esto levanta un contenedor MySQL con:
 Luego crea la base de datos conectándote al contenedor:
 
 ```bash
-docker exec -it some-mysql mysql -uroot -pmy-secret-pw -e "CREATE DATABASE IF NOT EXISTS productos;"
+docker exec -it some-mysql mysql -uroot -pmy-secret-pw -e "CREATE DATABASE IF NOT EXISTS db_productos;"
 ```
 
 Para detener o reiniciar el contenedor:
@@ -103,7 +103,7 @@ docker start some-mysql  # Reiniciar
 
 Crea la base de datos desde cualquier cliente MySQL:
 ```sql
-CREATE DATABASE IF NOT EXISTS productos;
+CREATE DATABASE IF NOT EXISTS db_productos;
 ```
 
 ---
@@ -186,13 +186,13 @@ productos/
 │   │   ├── java/com/duoc/productos/
 │   │   │   ├── ProductosApplication.java         # Punto de entrada (@EnableFeignClients)
 │   │   │   ├── client/
-│   │   │   │   └── CategoriaClient.java          # Cliente Feign para Platzi API
+│   │   │   │   └── CategoriaClient.java          # Cliente Feign para Microservicio Categorías
 │   │   │   ├── config/
 │   │   │   │   └── SwaggerConfig.java            # Configuración de Swagger / OpenAPI
 │   │   │   ├── controller/
 │   │   │   │   └── ProductosController.java      # Endpoints REST
 │   │   │   ├── dto/
-│   │   │   │   ├── CategoriaDTO.java             # Respuesta de la API externa
+│   │   │   │   ├── CategoriaDTO.java             # Respuesta de la microservicio de categorías
 │   │   │   │   ├── ProductoDTO.java              # Respuesta al cliente
 │   │   │   │   └── ProductoRequest.java          # Datos de entrada con validaciones
 │   │   │   ├── model/
@@ -357,9 +357,6 @@ public class ProductoRequest {
     @NotBlank(message = "El nombre no puede estar vacío")
     private String nombre;
 
-    @NotNull(message = "La cantidad es obligatoria")
-    @Positive(message = "La cantidad debe ser mayor a cero")
-    private Integer cantidad;
 
     @NotNull(message = "El precio es obligatorio")
     @Positive(message = "El precio debe ser mayor a cero")
@@ -378,7 +375,6 @@ public class ProductoRequest {
 public class ProductoDTO {
     private Integer id;
     private String nombre;
-    private Integer cantidad;
     private Integer precio;
     private String categoria;
 }
@@ -566,7 +562,7 @@ public class CategoriaNotFoundException extends RuntimeException {
 ```
 
 **¿Qué hace?**
-- Se lanza desde `ProductosService` cuando la categoría enviada no existe en la Platzi API
+- Se lanza desde `ProductosService` cuando la categoría enviada no existe en la Microservicio Categorías
 - El mensaje incluye el nombre de la categoría buscada para mayor claridad
 
 **Handler en `GlobalExceptionHandler`:**
@@ -582,7 +578,7 @@ public ResponseEntity<Map<String, String>> handleCategoriaNotFound(CategoriaNotF
 
 **¿Cómo funciona el flujo?**
 
-1. Cliente envía `POST /api/v1/productos` con `"categoria": "Deportes"` (no existe en Platzi)
+1. Cliente envía `POST /api/v1/productos` con `"categoria": "Deportes"` (no existe en Microservicio Categorías)
 2. `ProductosService` llama a `CategoriaClient` → obtiene la lista de categorías válidas
 3. `"Deportes"` no está en la lista → lanza `CategoriaNotFoundException("Deportes")`
 4. `GlobalExceptionHandler` la intercepta automáticamente
@@ -655,7 +651,6 @@ V{versión}__{descripción}.sql
 ```sql
 CREATE TABLE `productos` (
   `id`       int NOT NULL AUTO_INCREMENT,
-  `cantidad` int DEFAULT NULL,
   `nombre`   varchar(255) NOT NULL,
   `precio`   int DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -664,8 +659,8 @@ CREATE TABLE `productos` (
 
 **`V2__create_productos_insert.sql`** — Inserta datos iniciales de ejemplo:
 ```sql
-INSERT INTO productos.productos (cantidad, nombre, precio) VALUES (10, 'Teclado Gamer Razer', 39990);
-INSERT INTO productos.productos (cantidad, nombre, precio) VALUES (20, 'Mouse Gamer Razer', 27990);
+INSERT INTO productos.productos (nombre, precio) VALUES ('Teclado Gamer Razer', 39990);
+INSERT INTO productos.productos (nombre, precio) VALUES ('Mouse Gamer Razer', 27990);
 ```
 
 **`V3__add_column_categoria.sql`** — Agrega la columna `categoria` a la tabla:
@@ -673,7 +668,12 @@ INSERT INTO productos.productos (cantidad, nombre, precio) VALUES (20, 'Mouse Ga
 ALTER TABLE productos ADD COLUMN categoria VARCHAR(100) NOT NULL DEFAULT 'Sin categoría';
 ```
 
-> Esta migración añade el campo `categoria` que se valida contra la Platzi Fake Store API. El valor `DEFAULT 'Sin categoría'` permite que los registros existentes tengan un valor válido al agregar la columna.
+**`V4__drop_column_cantidad.sql`** — Elimina definitivamente la columna `cantidad` del esquema:
+```sql
+ALTER TABLE productos DROP COLUMN cantidad;
+```
+
+> Esta migración añade el campo `categoria` que se valida contra el microservicio Categorías. El valor `DEFAULT 'Sin categoría'` permite que los registros existentes tengan un valor válido al agregar la columna.
 
 ---
 
@@ -694,11 +694,11 @@ spring.flyway.repair=true  # Repara migraciones fallidas (útil en desarrollo)
 
 ### 8. **Consumo de APIs Externas con OpenFeign**
 
-#### ¿Por qué consumir una API externa?
+#### ¿Por qué consumir una microservicio de categorías?
 
 En aplicaciones reales, no toda la información vive en tu propia base de datos. A veces necesitas **delegar responsabilidades a servicios externos**: validar datos, obtener información de terceros, o comunicarte con otros microservicios.
 
-En este proyecto, en lugar de mantener una lista de categorías hardcodeada en el código, consultamos la **Platzi Fake Store API** para obtener las categorías válidas en tiempo real. Así, al crear o actualizar un producto, validamos que la categoría enviada sea real:
+En este proyecto, en lugar de mantener una lista de categorías hardcodeada en el código, consultamos la **Microservicio Categorías** para obtener las categorías válidas en tiempo real. Así, al crear o actualizar un producto, validamos que la categoría enviada sea real:
 
 ```
 POST /api/v1/productos  →  ProductosService  →  CategoriaClient  →  api.escuelajs.co
@@ -720,7 +720,7 @@ Este es uno de los conceptos más importantes de este ejercicio. Observa cómo e
 private ProductosRepository productosRepository;  // Accede a MySQL
 
 @Autowired
-private CategoriaClient categoriaClient;          // Accede a Platzi API
+private CategoriaClient categoriaClient;          // Accede a Microservicio Categorías
 ```
 
 Para el Service, **ambos son exactamente lo mismo**: reciben una llamada y devuelven objetos Java. La diferencia es solo de dónde vienen los datos:
@@ -728,7 +728,7 @@ Para el Service, **ambos son exactamente lo mismo**: reciben una llamada y devue
 | | `ProductosRepository` | `CategoriaClient` |
 |---|---|---|
 | **¿Qué es?** | Interfaz JPA | Interfaz Feign |
-| **¿De dónde trae datos?** | Base de datos MySQL | API externa (internet) |
+| **¿De dónde trae datos?** | Base de datos MySQL | microservicio de categorías (internet) |
 | **¿Qué devuelve?** | `Productos`, `List<Productos>` | `List<CategoriaDTO>` |
 | **¿Cómo se inyecta?** | `@Autowired` | `@Autowired` |
 | **¿Quién genera la implementación?** | Spring Data JPA | Spring Cloud OpenFeign |
@@ -755,18 +755,18 @@ public class ProductosApplication {
 **Ubicación**: [CategoriaClient.java](src/main/java/com/duoc/productos/client/CategoriaClient.java)
 
 ```java
-@FeignClient(name = "platzi-store", url = "${platzi.api.url:https://api.escuelajs.co/api/v1}")
+@FeignClient(name = "categorias")
 public interface CategoriaClient {
 
-    @GetMapping("/categories")
+    @GetMapping("/categorias")
     List<CategoriaDTO> obtenerCategorias();
 }
 ```
 
 **¿Qué hace `@FeignClient`?**
 - Marca la interfaz como cliente HTTP declarativo
-- `name`: identificador interno del cliente
-- `url`: dirección base de la API (se puede configurar en `application.properties`)
+- `name`: nombre del microservicio registrado en Eureka
+- La URL se resuelve automáticamente por service discovery
 - Spring genera automáticamente la implementación en tiempo de ejecución — **no escribes ningún código HTTP**
 
 **3. DTO para mapear la respuesta de la API:**
@@ -780,7 +780,7 @@ public class CategoriaDTO {
 }
 ```
 
-Feign deserializa automáticamente el JSON de la API al objeto Java:
+Feign deserializa automáticamente el JSON del microservicio al objeto Java:
 ```json
 [
   { "id": 1, "name": "Ropa" },
@@ -793,7 +793,7 @@ Feign deserializa automáticamente el JSON de la API al objeto Java:
 
 ```java
 private void validarCategoria(String categoria) {
-    List<CategoriaDTO> categorias = categoriaClient.obtenerCategorias(); // llama a la API
+    List<CategoriaDTO> categorias = categoriaClient.obtenerCategorias(); // llama al microservicio categorias
     boolean existe = categorias.stream()
             .anyMatch(c -> c.getName().equalsIgnoreCase(categoria));
     if (!existe) {
@@ -802,10 +802,10 @@ private void validarCategoria(String categoria) {
 }
 ```
 
-**5. URL configurable en `application.properties`:**
+**5. Descubrimiento vía Eureka:**
 
 ```properties
-platzi.api.url=https://api.escuelajs.co/api/v1
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
 ```
 
 ---
@@ -985,7 +985,6 @@ logs/
 Cuando creas un producto, verás algo así en la consola:
 
 ```
-2026-06-06 10:35:22 [http-nio-8080-exec-1] INFO  c.d.p.controller.ProductosController - El request para crear un producto fue: ProductoRequest(nombre=Leche, cantidad=10, precio=1500, categoria=Electronics)
 2026-06-06 10:35:22 [http-nio-8080-exec-1] INFO  c.d.p.service.ProductosService - Producto almacenado correctamente: Productos(id=1, nombre=Leche, ...)
 ```
 
@@ -1017,7 +1016,7 @@ Cuando construyes una API REST, otras personas necesitan saber cómo usarla: qu�
 <dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.6.0</version>
+    <version>2.8.6</version>
 </dependency>
 ```
 
@@ -1039,7 +1038,7 @@ springdoc.swagger-ui.path=/doc/swagger-ui.html
 ```
 
 Una vez levantada la aplicación, accede a:
-**`http://localhost:8080/doc/swagger-ui/index.html`**
+**`http://localhost:8082/doc/swagger-ui/index.html`**
 
 ---
 
@@ -1096,7 +1095,7 @@ Aparece en Swagger UI como una sección colapsable con todos los endpoints del c
 ```java
 @Operation(
     summary = "Crear un producto",
-    description = "Crea un nuevo producto. La categoría es validada contra la Platzi Fake Store API."
+    description = "Crea un nuevo producto. La categoría es validada contra la Microservicio Categorías."
 )
 @PostMapping
 public ResponseEntity<ProductoDTO> guardar(...) { }
@@ -1158,12 +1157,11 @@ public class ProductoRequest {
     private String nombre;
 
     @Schema(description = "Cantidad disponible en inventario", example = "10")
-    private Integer cantidad;
 
     @Schema(description = "Precio del producto en pesos chilenos", example = "39990")
     private Integer precio;
 
-    @Schema(description = "Categoría del producto (debe existir en Platzi Fake Store API)", example = "Electronics")
+    @Schema(description = "Categoría del producto (debe existir en Microservicio Categorías)", example = "Electronics")
     private String categoria;
 }
 ```
@@ -1177,7 +1175,7 @@ public class ProductoRequest {
 
 #### ¿Cómo se ve Swagger UI?
 
-Al acceder a `http://localhost:8080/doc/swagger-ui/index.html` verás:
+Al acceder a `http://localhost:8082/doc/swagger-ui/index.html` verás:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -1290,7 +1288,7 @@ class ProductosServiceTest {
     private ProductosRepository productosRepository; // Simula la BD
 
     @Mock
-    private CategoriaClient categoriaClient;         // Simula la API externa
+    private CategoriaClient categoriaClient;         // Simula la microservicio de categorías
 
     @InjectMocks
     private ProductosService productosService;       // La clase real que probamos
@@ -1413,7 +1411,7 @@ Si buscas tutoriales o ejemplos de testing en Spring Boot, verás que usan `@Moc
 2. Configura:
    - **Project**: Maven Project
    - **Language**: Java
-   - **Spring Boot**: 4.0.5 o superior
+   - **Spring Boot**: 3.4.5 o superior
    - **Group**: com.duoc
    - **Artifact**: productos
    - **Java Version**: 21
@@ -1431,7 +1429,7 @@ Si buscas tutoriales o ejemplos de testing en Spring Boot, verás que usan `@Moc
 curl https://start.spring.io/starter.zip \
   -d dependencies=web,validation,data-jpa,mysql,lombok \
   -d javaVersion=21 \
-  -d bootVersion=4.0.5 \
+  -d bootVersion=3.4.5 \
   -d groupId=com.duoc \
   -d artifactId=productos \
   -o productos.zip
@@ -1482,7 +1480,7 @@ mvn spring-boot:run
 [INFO] Started ProductosApplication in 2.5 seconds
 ```
 
-La aplicación estará disponible en: `http://localhost:8080`
+La aplicación estará disponible en: `http://localhost:8082`
 
 ---
 
@@ -1508,7 +1506,7 @@ Luego crea la base de datos:
 
 ```bash
 docker exec -it some-mysql mysql -uroot -pmy-secret-pw \
-  -e "CREATE DATABASE IF NOT EXISTS productos;"
+  -e "CREATE DATABASE IF NOT EXISTS db_productos;"
 ```
 
 #### Paso 2: Construir la imagen de la API
@@ -1529,7 +1527,7 @@ Esto ejecuta una compilación en **dos etapas**:
 
 ```bash
 docker run --name productos-api \
-  -p 8080:8080 \
+  -p 8080:8082 \
   -e SPRING_DATASOURCE_URL="jdbc:mysql://host.docker.internal:3306/productos?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" \
   -e SPRING_DATASOURCE_USERNAME=root \
   -e SPRING_DATASOURCE_PASSWORD=my-secret-pw \
@@ -1538,7 +1536,7 @@ docker run --name productos-api \
 
 | Parámetro | Descripción |
 |-----------|-------------|
-| `-p 8080:8080` | Mapea el puerto `8080` del contenedor al puerto `8080` de tu máquina. Cambia el primer número para usar otro puerto local (ej: `-p 9090:8080`) |
+| `-p 8080:8082` | Mapea el puerto `8082` del contenedor al puerto `8082` de tu máquina. Cambia el primer número para usar otro puerto local (ej: `-p 9090:8082`) |
 | `host.docker.internal` | Dirección especial que permite al contenedor conectarse a servicios en tu máquina local (MySQL) |
 | `-e SPRING_DATASOURCE_*` | Sobreescribe las variables del `application.properties` sin modificar el código |
 
@@ -1547,17 +1545,17 @@ docker run --name productos-api \
 Started ProductosApplication in 3.2 seconds
 ```
 
-La aplicación estará disponible en: `http://localhost:8080`
+La aplicación estará disponible en: `http://localhost:8082`
 
 #### Cambiar el puerto de la API
 
-Si el puerto `8080` está ocupado, cambia solo el lado izquierdo del `-p`:
+Si el puerto `8082` está ocupado, cambia solo el lado izquierdo del `-p`:
 
 ```bash
 # Levantar la API en el puerto 9090
 docker run --name productos-api \
-  -p 9090:8080 \
-  -e SPRING_DATASOURCE_URL="jdbc:mysql://host.docker.internal:3306/productos?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" \
+  -p 9090:8082 \
+  -e SPRING_DATASOURCE_URL="jdbc:mysql://host.docker.internal:3306/db_productos?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" \
   -e SPRING_DATASOURCE_USERNAME=root \
   -e SPRING_DATASOURCE_PASSWORD=my-secret-pw \
   productos-api
@@ -1600,11 +1598,10 @@ docker rmi productos-api       # Eliminar la imagen
 
 #### 1. Crear un producto válido (POST)
 ```bash
-curl -X POST http://localhost:8080/api/v1/productos \
+curl -X POST http://localhost:8082/api/v1/productos \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "Leche",
-    "cantidad": 10,
     "precio": 1500,
     "categoria": "Electronics"
   }'
@@ -1615,7 +1612,6 @@ curl -X POST http://localhost:8080/api/v1/productos \
 {
     "id": 1,
     "nombre": "Leche",
-    "cantidad": 10,
     "precio": 1500,
     "categoria": "Electronics"
 }
@@ -1625,11 +1621,10 @@ curl -X POST http://localhost:8080/api/v1/productos \
 
 #### 2. Crear producto con datos inválidos (POST)
 ```bash
-curl -X POST http://localhost:8080/api/v1/productos \
+curl -X POST http://localhost:8082/api/v1/productos \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "",
-    "cantidad": -5,
     "precio": null,
     "categoria": ""
   }'
@@ -1639,7 +1634,6 @@ curl -X POST http://localhost:8080/api/v1/productos \
 ```json
 {
     "nombre": "El nombre no puede estar vacío",
-    "cantidad": "La cantidad debe ser mayor a cero",
     "precio": "El precio es obligatorio",
     "categoria": "La categoría no puede estar vacía"
 }
@@ -1649,7 +1643,7 @@ curl -X POST http://localhost:8080/api/v1/productos \
 
 #### 3. Listar todos los productos (GET)
 ```bash
-curl -X GET http://localhost:8080/api/v1/productos
+curl -X GET http://localhost:8082/api/v1/productos
 ```
 
 **Respuesta esperada (200)**:
@@ -1658,7 +1652,6 @@ curl -X GET http://localhost:8080/api/v1/productos
     {
         "id": 1,
         "nombre": "Leche",
-        "cantidad": 10,
         "precio": 1500,
         "categoria": "Electronics"
     }
@@ -1669,7 +1662,7 @@ curl -X GET http://localhost:8080/api/v1/productos
 
 #### 4. Filtrar por nombre (GET con query param)
 ```bash
-curl -X GET "http://localhost:8080/api/v1/productos?nombre=leche"
+curl -X GET "http://localhost:8082/api/v1/productos?nombre=leche"
 ```
 
 **Respuesta esperada (200)**:
@@ -1678,7 +1671,6 @@ curl -X GET "http://localhost:8080/api/v1/productos?nombre=leche"
     {
         "id": 1,
         "nombre": "Leche",
-        "cantidad": 10,
         "precio": 1500,
         "categoria": "Electronics"
     }
@@ -1689,7 +1681,7 @@ curl -X GET "http://localhost:8080/api/v1/productos?nombre=leche"
 
 #### 5. Buscar por ID (GET)
 ```bash
-curl -X GET http://localhost:8080/api/v1/productos/1
+curl -X GET http://localhost:8082/api/v1/productos/1
 ```
 
 **Respuesta esperada (200)**:
@@ -1697,7 +1689,6 @@ curl -X GET http://localhost:8080/api/v1/productos/1
 {
     "id": 1,
     "nombre": "Leche",
-    "cantidad": 10,
     "precio": 1500,
     "categoria": "Electronics"
 }
@@ -1714,11 +1705,10 @@ curl -X GET http://localhost:8080/api/v1/productos/1
 
 #### 6. Actualizar un producto (PUT)
 ```bash
-curl -X PUT http://localhost:8080/api/v1/productos/1 \
+curl -X PUT http://localhost:8082/api/v1/productos/1 \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "Leche Descremada",
-    "cantidad": 20,
     "precio": 1800,
     "categoria": "Electronics"
   }'
@@ -1729,7 +1719,6 @@ curl -X PUT http://localhost:8080/api/v1/productos/1 \
 {
     "id": 1,
     "nombre": "Leche Descremada",
-    "cantidad": 20,
     "precio": 1800,
     "categoria": "Electronics"
 }
@@ -1739,7 +1728,7 @@ curl -X PUT http://localhost:8080/api/v1/productos/1 \
 
 #### 7. Eliminar un producto (DELETE)
 ```bash
-curl -X DELETE http://localhost:8080/api/v1/productos/1
+curl -X DELETE http://localhost:8082/api/v1/productos/1
 ```
 
 **Respuesta esperada (204)**: Sin cuerpo de respuesta.
@@ -1897,7 +1886,7 @@ Usar `@Tag`, `@Operation`, `@ApiResponses` y `@Schema` para documentar la API de
 ```
 
 ### 12. **Pruebas Unitarias con JUnit 5 y Mockito**
-Escribir tests automatizados que verifiquen el comportamiento de cada método de forma aislada, usando mocks para simular dependencias (BD, API externa). Esto permite detectar errores antes de desplegar y refactorizar con confianza.
+Escribir tests automatizados que verifiquen el comportamiento de cada método de forma aislada, usando mocks para simular dependencias (BD, microservicio de categorías). Esto permite detectar errores antes de desplegar y refactorizar con confianza.
 
 ```java
 // Service: prueba aislada con Mockito puro — sin Spring, sin BD
@@ -1913,7 +1902,6 @@ class ProductosControllerTest { ... }  // 6 tests
 
 ### Nivel 1: Básico
 1. Agregar un campo `descripcion` a `Productos` con validación `@NotBlank`
-2. Crear un endpoint GET que retorne solo productos con `cantidad > 0`
 3. Agregar validación de precio máximo con `@Max`
 
 ### Nivel 2: Intermedio
@@ -1934,11 +1922,11 @@ java.sql.SQLSyntaxErrorException: Unknown database 'productos'
 
 Si usas Docker:
 ```bash
-docker exec -it some-mysql mysql -uroot -pmy-secret-pw -e "CREATE DATABASE IF NOT EXISTS productos;"
+docker exec -it some-mysql mysql -uroot -pmy-secret-pw -e "CREATE DATABASE IF NOT EXISTS db_productos;"
 ```
 Si usas MySQL local:
 ```sql
-CREATE DATABASE IF NOT EXISTS productos;
+CREATE DATABASE IF NOT EXISTS db_productos;
 ```
 > ⚠️ Hibernate **no crea las tablas** cuando se usa Flyway con `ddl-auto=none`. Es Flyway quien las crea al ejecutar `V1__create_productos_table.sql`. Debes crear la base de datos manualmente una sola vez.
 
@@ -1978,7 +1966,7 @@ El JSON enviado tiene formato inválido. Verifica comillas dobles, tipos de dato
 - [Flyway — Documentación oficial con Spring Boot y MySQL](https://documentation.red-gate.com/flyway/flyway-cli-and-api/usage/api-java/spring-boot)
 - [🎬 Video del curso Fullstack I — Instalación, configuración e implementación de Flyway paso a paso](https://www.youtube.com/watch?v=WSnnJeqGtOQ)
 - [Spring Cloud OpenFeign — Documentación oficial](https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/)
-- [Platzi Fake Store API — Categorías en español](https://api.escuelajs.co/api/v1/categories)
+- [Microservicio Categorías — Categorías en español](https://api.escuelajs.co/api/v1/categories)
 - [SLF4J — Manual oficial (Simple Logging Facade for Java)](https://www.slf4j.org/manual.html)
 - [Logback — Documentación oficial (motor de logs usado por Spring Boot)](https://logback.qos.ch/documentation.html)
 - [Spring Boot Logging — Referencia oficial](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.logging)
