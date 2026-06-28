@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Windows
+Thumbs.db
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Maven
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+**/maven-wrapper.jar
+
+# Logs
+logs/
+**/logs/
+*.log
+
+# Entorno / secretos
+*.env
+.env*
+application-local.properties
+application-local.yml
+
+# JVM crash dumps
+hs_err_pid*
+replay_pid*
+
+# VS Code
+.vscode/
