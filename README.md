@@ -199,6 +199,45 @@ Abre `http://localhost:8761` y confirma que aparecen: `GATEWAY`, `PRODUCTOS`, `C
 
 ---
 
+## 💻 Desarrollo Local (Sin Docker)
+
+Si prefieres desarrollar de manera local (ejecutando los servicios directamente en tu máquina o desde el IDE), sigue estas directrices:
+
+### Paso 1: Base de Datos Local
+1. Asegúrate de tener una instancia de MySQL corriendo localmente en el puerto `3306`.
+2. Las credenciales por defecto en los archivos `application.properties` son:
+   * **Usuario:** `root`
+   * **Contraseña:** `my-secret-pw`
+3. Crea las cuatro bases de datos necesarias para que Flyway pueda inicializar el esquema. Ejecuta en tu cliente SQL:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS db_productos;
+   CREATE DATABASE IF NOT EXISTS db_clientes;
+   CREATE DATABASE IF NOT EXISTS db_categorias;
+   CREATE DATABASE IF NOT EXISTS db_ventas;
+   ```
+
+### Paso 2: Compilación y Ejecución (Uso de Maven Wrapper)
+Dado que el proyecto no cuenta con un POM padre en el directorio raíz, cada microservicio debe ser gestionado individualmente dentro de su propia carpeta usando el Maven Wrapper (`./mvnw` o `mvnw.cmd`):
+
+*   **Compilar un servicio (genera el archivo .jar):**
+    ```bash
+    cd <carpeta-del-servicio>
+    ./mvnw clean package -DskipTests
+    ```
+*   **Ejecutar un servicio en modo desarrollo:**
+    ```bash
+    cd <carpeta-del-servicio>
+    ./mvnw spring-boot:run
+    ```
+
+### Paso 3: Orden de Encendido Recomendado
+Para evitar errores de conexión en el arranque, levanta los servicios en el siguiente orden:
+1. **Eureka Server (`eureka`):** Debe iniciarse primero para recibir los registros.
+2. **Microservicios de negocio (`categorias`, `clientes`, `productos`, `ventas`):** Espera a que se registren en Eureka.
+3. **API Gateway (`gateway`):** Debe levantarse al final para poder enrutar correctamente las solicitudes hacia las instancias registradas.
+
+---
+
 ## 🌍 URLs Útiles
 
 | Recurso                     | URL                                        |
@@ -248,7 +287,7 @@ Cada uno permite explorar y probar todos los endpoints directamente desde el nav
 | Método | URL                              | Descripción                    | Status |
 |--------|----------------------------------|--------------------------------|--------|
 | POST   | `/api/v1/productos`              | Crear producto                 | 201    |
-| GET    | `/api/v1/productos`              | Listar todos / filtrar nombre  | 200/204|
+| GET    | `/api/v1/productos`              | Listar todos / filtrar nombre  | 200    |
 | GET    | `/api/v1/productos/{id}`         | Buscar por ID                  | 200/404|
 | PUT    | `/api/v1/productos/{id}`         | Actualizar producto            | 200/404|
 | DELETE | `/api/v1/productos/{id}`         | Eliminar producto              | 204/404|
@@ -260,7 +299,7 @@ Cada uno permite explorar y probar todos los endpoints directamente desde el nav
 | Método | URL                            | Descripción                      | Status |
 |--------|--------------------------------|----------------------------------|--------|
 | POST   | `/api/v1/clientes`             | Crear cliente                    | 201    |
-| GET    | `/api/v1/clientes`             | Listar todos / filtrar nombre    | 200/204|
+| GET    | `/api/v1/clientes`             | Listar todos / filtrar nombre    | 200    |
 | GET    | `/api/v1/clientes/{id}`        | Buscar por ID                    | 200/404|
 | PUT    | `/api/v1/clientes/{id}`        | Actualizar cliente               | 200/404|
 | DELETE | `/api/v1/clientes/{id}`        | Eliminar cliente                 | 204/404|
@@ -270,7 +309,7 @@ Cada uno permite explorar y probar todos los endpoints directamente desde el nav
 | Método | URL                               | Descripción                     | Status |
 |--------|-----------------------------------|---------------------------------|--------|
 | POST   | `/api/v1/categorias`              | Crear categoría                 | 201    |
-| GET    | `/api/v1/categorias`              | Listar todas / filtrar nombre   | 200/204|
+| GET    | `/api/v1/categorias`              | Listar todas / filtrar nombre   | 200    |
 | GET    | `/api/v1/categorias/{id}`         | Buscar por ID                   | 200/404|
 | PUT    | `/api/v1/categorias/{id}`         | Actualizar categoría            | 200/404|
 | DELETE | `/api/v1/categorias/{id}`         | Eliminar categoría              | 204/404|
@@ -280,7 +319,7 @@ Cada uno permite explorar y probar todos los endpoints directamente desde el nav
 | Método | URL                           | Descripción                                    | Status |
 |--------|-------------------------------|------------------------------------------------|--------|
 | POST   | `/api/v1/ventas`              | Registrar venta (valida cliente y producto)    | 201    |
-| GET    | `/api/v1/ventas`              | Listar todas / filtrar por clienteId/productoId| 200/204|
+| GET    | `/api/v1/ventas`              | Listar todas / filtrar por clienteId/productoId| 200    |
 | GET    | `/api/v1/ventas/{id}`         | Buscar por ID                                  | 200/404|
 | DELETE | `/api/v1/ventas/{id}`         | Eliminar venta (corrección operativa)          | 204/404|
 
@@ -309,7 +348,7 @@ Cada uno permite explorar y probar todos los endpoints directamente desde el nav
 
 ## 🗄️ Conexión a Bases de Datos (desde el host)
 
-Puedes conectarte directamente desde cualquier cliente SQL (DataGrip, DBeaver, TablePlus, MySQL Workbench):
+Por defecto, las bases de datos no exponen puertos al host en `docker-compose.yml` para evitar conflictos de puertos en tu máquina local. Si deseas conectarte directamente desde un cliente SQL (DataGrip, DBeaver, TablePlus, MySQL Workbench), debes agregar la sección `ports` a cada base de datos en `docker-compose.yml` (por ejemplo, `- "3307:3306"` para `db-productos`). Una vez expuestos, los parámetros de conexión recomendados son:
 
 | Base de datos   | Host        | Puerto | Usuario | Contraseña |
 |-----------------|-------------|--------|---------|------------|
@@ -659,7 +698,7 @@ docker compose logs db-ventas
 ### `Unknown database`
 Flyway intenta migrar pero la base de datos no existe. El `MYSQL_DATABASE` en docker-compose crea la BD automáticamente. Si falla, entra al contenedor:
 ```bash
-docker exec -it microservicios-db-ventas-1 mysql -uroot -proot \
+docker exec -it db-ventas mysql -uroot -proot \
   -e "CREATE DATABASE IF NOT EXISTS db_ventas;"
 ```
 
