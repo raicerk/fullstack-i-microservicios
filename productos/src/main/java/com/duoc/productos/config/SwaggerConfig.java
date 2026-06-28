@@ -14,7 +14,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API Gestión de Productos")
-                        .description("API REST para la gestión de productos. Permite crear, listar, buscar, actualizar y eliminar productos. Las categorías son validadas contra la Platzi Fake Store API.")
+                        .description("API REST para la gestión de productos. Permite crear, listar, buscar, actualizar y eliminar productos. Las categorías son validadas contra la API de categorias.")
                         .version("v1.0.0")
                         .contact(new Contact()
                                 .name("DUOC UC - Fullstack I")

@@ -10,5 +10,5 @@ public class CategoriaRequest {
 
     @Schema(description = "Nombre de la categoría", example = "Electronics")
     @NotBlank(message = "El nombre no puede estar vacío")
-    private String name;
+    private String nombre;
 }

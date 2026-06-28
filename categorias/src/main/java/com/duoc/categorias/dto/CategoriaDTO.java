@@ -11,5 +11,5 @@ public class CategoriaDTO {
     private Integer id;
 
     @Schema(description = "Nombre de la categoría", example = "Electronics")
-    private String name;
+    private String nombre;
 }

@@ -41,7 +41,7 @@ public class CategoriasController {
         return new ResponseEntity<>(categoriaService.guardar(request), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Listar categorías", description = "Retorna todas las categorías. Si se proporciona el parámetro 'name', filtra por nombre (búsqueda parcial, sin distinción de mayúsculas).")
+    @Operation(summary = "Listar categorías", description = "Retorna todas las categorías. Si se proporciona el parámetro 'nombre', filtra por nombre (búsqueda parcial, sin distinción de mayúsculas).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de categorías obtenida exitosamente",
                     content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = CategoriaDTO.class)))),
@@ -49,10 +49,10 @@ public class CategoriasController {
     })
     @GetMapping
     public ResponseEntity<List<CategoriaDTO>> listar(
-            @Parameter(description = "Nombre de la categoría para filtrar (opcional)") @RequestParam(required = false) String name) {
+            @Parameter(description = "Nombre de la categoría para filtrar (opcional)") @RequestParam(required = false) String nombre) {
         List<CategoriaDTO> categorias;
-        if (name != null) {
-            categorias = categoriaService.buscarPorName(name);
+        if (nombre != null) {
+            categorias = categoriaService.buscarPorNombre(nombre);
         } else {
             categorias = categoriaService.listar();
         }

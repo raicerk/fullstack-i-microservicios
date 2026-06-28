@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 public class ClienteService {
 
     @Autowired

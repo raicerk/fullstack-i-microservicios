@@ -32,8 +32,8 @@ public class CategoriaService {
         return convertirADTO(categoria);
     }
 
-    public List<CategoriaDTO> buscarPorName(String name) {
-        return categoriaRepository.findCategoriasByNameContainsIgnoreCase(name)
+    public List<CategoriaDTO> buscarPorNombre(String nombre) {
+        return categoriaRepository.findCategoriasByNombreContainsIgnoreCase(nombre)
                 .stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
@@ -41,7 +41,7 @@ public class CategoriaService {
 
     public CategoriaDTO guardar(CategoriaRequest request) {
         Categoria categoria = new Categoria();
-        categoria.setName(request.getName());
+        categoria.setNombre(request.getNombre());
         log.info("Categoría almacenada correctamente: {}", categoria);
         return convertirADTO(categoriaRepository.save(categoria));
     }
@@ -49,7 +49,7 @@ public class CategoriaService {
     public CategoriaDTO actualizar(Integer id, CategoriaRequest request) {
         Categoria categoriaExistente = categoriaRepository.findById(id)
                 .orElseThrow(() -> new CategoriaNotFoundException(id));
-        categoriaExistente.setName(request.getName());
+        categoriaExistente.setNombre(request.getNombre());
         return convertirADTO(categoriaRepository.save(categoriaExistente));
     }
 
@@ -62,7 +62,7 @@ public class CategoriaService {
         if (categoria == null) return null;
         CategoriaDTO dto = new CategoriaDTO();
         dto.setId(categoria.getId());
-        dto.setName(categoria.getName());
+        dto.setNombre(categoria.getNombre());
         return dto;
     }
 }

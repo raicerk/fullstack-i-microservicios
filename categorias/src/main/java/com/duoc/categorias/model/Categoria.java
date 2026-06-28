@@ -17,5 +17,5 @@ public class Categoria {
     private Integer id;
 
     @Column(nullable = false)
-    private String name;
+    private String nombre;
 }
