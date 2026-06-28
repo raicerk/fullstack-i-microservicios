@@ -52,10 +52,10 @@ class CategoriasControllerTest {
     void setUp() {
         categoriaDTO = new CategoriaDTO();
         categoriaDTO.setId(1);
-        categoriaDTO.setName("Electronics");
+        categoriaDTO.setNombre("Electronics");
 
         requestValido = new CategoriaRequest();
-        requestValido.setName("Electronics");
+        requestValido.setNombre("Electronics");
     }
 
     // =========================================================================
@@ -72,14 +72,14 @@ class CategoriasControllerTest {
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Electronics"));
+                .andExpect(jsonPath("$.nombre").value("Electronics"));
     }
 
     @Test
     @DisplayName("POST /api/v1/categorias: debería retornar 400 cuando los datos son inválidos")
     void shouldRetornar400CuandoDatosInvalidos() throws Exception {
         CategoriaRequest requestInvalido = new CategoriaRequest();
-        requestInvalido.setName(""); // @NotBlank falla
+        requestInvalido.setNombre(""); // @NotBlank falla
 
         mockMvc.perform(post("/api/v1/categorias")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +100,7 @@ class CategoriasControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Electronics"));
+                .andExpect(jsonPath("$[0].nombre").value("Electronics"));
     }
 
     @Test
@@ -126,7 +126,7 @@ class CategoriasControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Electronics"));
+                .andExpect(jsonPath("$.nombre").value("Electronics"));
     }
 
     @Test
@@ -154,7 +154,7 @@ class CategoriasControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Electronics"));
+                .andExpect(jsonPath("$.nombre").value("Electronics"));
     }
 
     // =========================================================================

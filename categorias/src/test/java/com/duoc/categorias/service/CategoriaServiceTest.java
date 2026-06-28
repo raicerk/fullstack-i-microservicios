@@ -47,7 +47,7 @@ class CategoriaServiceTest {
         categoriaGuardada = new Categoria(1, "Electronics");
 
         request = new CategoriaRequest();
-        request.setName("Electronics");
+        request.setNombre("Electronics");
     }
 
     // =========================================================================
@@ -63,7 +63,7 @@ class CategoriaServiceTest {
 
         assertNotNull(resultado);
         assertEquals(1, resultado.getId());
-        assertEquals("Electronics", resultado.getName());
+        assertEquals("Electronics", resultado.getNombre());
         verify(categoriaRepository, times(1)).save(any(Categoria.class));
     }
 
@@ -81,8 +81,8 @@ class CategoriaServiceTest {
 
         assertNotNull(resultado);
         assertEquals(2, resultado.size());
-        assertEquals("Electronics", resultado.get(0).getName());
-        assertEquals("Clothes", resultado.get(1).getName());
+        assertEquals("Electronics", resultado.get(0).getNombre());
+        assertEquals("Clothes", resultado.get(1).getNombre());
     }
 
     @Test
@@ -109,7 +109,7 @@ class CategoriaServiceTest {
 
         assertNotNull(resultado);
         assertEquals(1, resultado.getId());
-        assertEquals("Electronics", resultado.getName());
+        assertEquals("Electronics", resultado.getNombre());
     }
 
     @Test
@@ -128,7 +128,7 @@ class CategoriaServiceTest {
     @DisplayName("actualizar: debería actualizar la categoría y retornar el DTO con los nuevos datos")
     void shouldActualizarCategoriaCorrectamente() {
         Categoria categoriaActualizada = new Categoria(1, "Electronics Pro");
-        request.setName("Electronics Pro");
+        request.setNombre("Electronics Pro");
 
         when(categoriaRepository.findById(1)).thenReturn(Optional.of(categoriaGuardada));
         when(categoriaRepository.save(any(Categoria.class))).thenReturn(categoriaActualizada);
@@ -136,7 +136,7 @@ class CategoriaServiceTest {
         CategoriaDTO resultado = categoriaService.actualizar(1, request);
 
         assertNotNull(resultado);
-        assertEquals("Electronics Pro", resultado.getName());
+        assertEquals("Electronics Pro", resultado.getNombre());
         verify(categoriaRepository, times(1)).save(any(Categoria.class));
     }
 
@@ -178,15 +178,15 @@ class CategoriaServiceTest {
     // =========================================================================
 
     @Test
-    @DisplayName("buscarPorName: debería retornar las categorías que coincidan con el nombre")
+    @DisplayName("buscarPorNombre: debería retornar las categorías que coincidan con el nombre")
     void shouldBuscarCategoriasPorName() {
-        when(categoriaRepository.findCategoriasByNameContainsIgnoreCase("elec"))
+        when(categoriaRepository.findCategoriasByNombreContainsIgnoreCase("elec"))
                 .thenReturn(List.of(categoriaGuardada));
 
-        List<CategoriaDTO> resultado = categoriaService.buscarPorName("elec");
+        List<CategoriaDTO> resultado = categoriaService.buscarPorNombre("elec");
 
         assertNotNull(resultado);
         assertEquals(1, resultado.size());
-        assertEquals("Electronics", resultado.get(0).getName());
+        assertEquals("Electronics", resultado.get(0).getNombre());
     }
 }

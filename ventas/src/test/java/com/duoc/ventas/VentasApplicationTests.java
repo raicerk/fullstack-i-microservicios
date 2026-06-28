@@ -1,4 +1,4 @@
-package com.duoc.categorias;
+package com.duoc.ventas;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -6,9 +6,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class CategoriasApplicationTests {
+class VentasApplicationTests {
 
 	@Test
 	void contextLoads() {
 	}
+
 }
