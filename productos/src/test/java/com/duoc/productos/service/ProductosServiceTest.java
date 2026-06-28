@@ -67,7 +67,7 @@ class ProductosServiceTest {
 
         // Categoría válida que retorna el microservicio de Categorías
         categoriaValida = new CategoriaDTO();
-        categoriaValida.setName("Electronics");
+        categoriaValida.setNombre("Electronics");
     }
 
     // =========================================================================
@@ -100,7 +100,7 @@ class ProductosServiceTest {
     void shouldThrowCategoriaNotFoundAlGuardar() {
         // Given: la API externa no retorna la categoría enviada
         CategoriaDTO otraCategoria = new CategoriaDTO();
-        otraCategoria.setName("Ropa");
+        otraCategoria.setNombre("Ropa");
         when(categoriaClient.obtenerCategorias()).thenReturn(List.of(otraCategoria));
 
         // When + Then: se espera que se lance CategoriaNotFoundException
