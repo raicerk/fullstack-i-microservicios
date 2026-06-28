@@ -78,7 +78,7 @@ public class ProductosService {
     // Consulta las categorías válidas en el microservicio de Categorías y lanza excepción si la categoría no existe
     private void validarCategoria(String categoria) {
         List<CategoriaDTO> categorias = categoriaClient.obtenerCategorias();
-        boolean existe = categorias.stream().anyMatch(c -> c.getName().equalsIgnoreCase(categoria));
+        boolean existe = categorias.stream().anyMatch(c -> c.getNombre().equalsIgnoreCase(categoria));
         if (!existe) throw new CategoriaNotFoundException(categoria);
     }
 
