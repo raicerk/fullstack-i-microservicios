@@ -33,7 +33,7 @@ public class ClienteController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de clientes obtenida exitosamente",
                     content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ClienteDTO.class)))),
-            @ApiResponse(responseCode = "204", description = "No hay clientes que mostrar", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Lista de clientes (puede estar vacía)")
     })
     @GetMapping
     public ResponseEntity<List<ClienteDTO>> obtenerClientes(
@@ -44,7 +44,6 @@ public class ClienteController {
         } else {
             clientes = clienteService.getClientes();
         }
-        if (clientes.isEmpty()) return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         return new ResponseEntity<>(clientes, HttpStatus.OK);
     }
 

@@ -123,15 +123,15 @@ class ProductosControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/productos: debería retornar 204 cuando la lista está vacía")
-    void shouldRetornar204CuandoListaVacia() throws Exception {
+    @DisplayName("GET /api/v1/productos: debería retornar 200 con lista vacía")
+    void shouldRetornar200CuandoListaVacia() throws Exception {
         // Given: el servicio retorna una lista vacía
         when(productosService.listar()).thenReturn(Collections.emptyList());
 
         // When + Then
         mockMvc.perform(get("/api/v1/productos")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());                       // 204
+                .andExpect(status().isOk());                              // 200
     }
 
     // =========================================================================

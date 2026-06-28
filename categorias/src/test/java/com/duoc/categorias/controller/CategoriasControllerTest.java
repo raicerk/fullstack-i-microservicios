@@ -104,13 +104,13 @@ class CategoriasControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/categorias: debería retornar 204 cuando la lista está vacía")
-    void shouldRetornar204CuandoListaVacia() throws Exception {
+    @DisplayName("GET /api/v1/categorias: debería retornar 200 con lista vacía")
+    void shouldRetornar200CuandoListaVacia() throws Exception {
         when(categoriaService.listar()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/categorias")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     // =========================================================================

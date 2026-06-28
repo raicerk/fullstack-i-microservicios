@@ -45,7 +45,7 @@ public class CategoriasController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de categorías obtenida exitosamente",
                     content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = CategoriaDTO.class)))),
-            @ApiResponse(responseCode = "204", description = "No hay categorías que mostrar", content = @Content)
+            @ApiResponse(responseCode = "200", description = "Lista de categorías (puede estar vacía)")
     })
     @GetMapping
     public ResponseEntity<List<CategoriaDTO>> listar(
@@ -56,7 +56,6 @@ public class CategoriasController {
         } else {
             categorias = categoriaService.listar();
         }
-        if (categorias.isEmpty()) return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         return new ResponseEntity<>(categorias, HttpStatus.OK);
     }
 

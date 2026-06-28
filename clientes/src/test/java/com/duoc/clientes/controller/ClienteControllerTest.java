@@ -111,13 +111,13 @@ class ClienteControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/clientes: debería retornar 204 cuando la lista está vacía")
-    void shouldRetornar204CuandoListaVacia() throws Exception {
+    @DisplayName("GET /api/v1/clientes: debería retornar 200 con lista vacía")
+    void shouldRetornar200CuandoListaVacia() throws Exception {
         when(clienteService.getClientes()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/clientes")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     // =========================================================================
