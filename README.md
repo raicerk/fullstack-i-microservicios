@@ -417,11 +417,11 @@ Feign genera automáticamente la implementación HTTP. Para el Service, llamar a
 
 Cada microservicio separa la entidad de base de datos del objeto expuesto al cliente:
 
-| Clase | Rol | Descripción |
-|-------|-----|-------------|
-| `Model` (ej: `Venta.java`) | Entidad JPA | Mapeada a la tabla de BD, usada internamente |
-| `Request` (ej: `VentaRequest.java`) | Entrada | Datos que envía el cliente + validaciones |
-| `DTO` (ej: `VentaDTO.java`) | Salida | Datos que devuelve la API (puede incluir datos enriquecidos) |
+| Clase                               | Rol         | Descripción                                                  |
+|-------------------------------------|-------------|--------------------------------------------------------------|
+| `Model` (ej: `Venta.java`)          | Entidad JPA | Mapeada a la tabla de BD, usada internamente                 |
+| `Request` (ej: `VentaRequest.java`) | Entrada     | Datos que envía el cliente + validaciones                    |
+| `DTO` (ej: `VentaDTO.java`)         | Salida      | Datos que devuelve la API (puede incluir datos enriquecidos) |
 
 ### 5. Migraciones con Flyway
 
@@ -444,24 +444,24 @@ spring.flyway.enabled=true           # Flyway gestiona el esquema
 
 Versión adaptada de MVC para APIs REST con Spring Boot:
 
-| Capa | Componente | Responsabilidad |
-|------|-----------|-----------------|
-| Presentación | **Controller** | Mapea rutas HTTP, valida entrada, retorna respuestas |
-| Lógica de Negocio | **Service** | Lógica empresarial, conversión DTO ↔ Entidad, llamadas Feign |
-| Datos | **Repository** | Acceso a MySQL mediante JPA (CRUD automático) |
-| Datos | **Model** | Entidad JPA mapeada a tabla |
-| Transferencia | **DTOs** | Contratos de entrada/salida |
-| Errores | **GlobalExceptionHandler** | Captura excepciones y retorna respuestas coherentes |
+| Capa              | Componente                 | Responsabilidad                                              |
+|-------------------|----------------------------|--------------------------------------------------------------|
+| Presentación.     | **Controller**             | Mapea rutas HTTP, valida entrada, retorna respuestas         |
+| Lógica de Negocio | **Service**                | Lógica empresarial, conversión DTO ↔ Entidad, llamadas Feign |
+| Datos             | **Repository**             | Acceso a MySQL mediante JPA (CRUD automático)                |
+| Datos             | **Model**                  | Entidad JPA mapeada a tabla                                  |
+| Transferencia     | **DTOs**                   | Contratos de entrada/salida                                  |
+| Errores           | **GlobalExceptionHandler** | Captura excepciones y retorna respuestas coherentes          |
 
 ### 7. HTTP Status Codes
 
-| Código | Nombre | Cuándo se usa |
-|--------|--------|---------------|
-| **200** | OK | GET por ID, PUT exitoso |
-| **201** | Created | POST exitoso |
-| **204** | No Content | Lista vacía, DELETE exitoso |
-| **400** | Bad Request | Validaciones fallidas |
-| **404** | Not Found | ID inexistente, recurso no encontrado en Feign |
+| Código  | Nombre              | Cuándo se usa                                               |
+|---------|---------------------|-------------------------------------------------------------|
+| **200** | OK                  | GET por ID, PUT exitoso                                     |
+| **201** | Created             | POST exitoso                                                |
+| **204** | No Content          | Lista vacía, DELETE exitoso                                 |
+| **400** | Bad Request         | Validaciones fallidas                                       |
+| **404** | Not Found           | ID inexistente, recurso no encontrado en Feign              |
 | **503** | Service Unavailable | Microservicio no disponible (Eureka no lo tiene registrado) |
 
 ### 8. Logging con SLF4J y `@Slf4j`
@@ -556,48 +556,48 @@ curl http://localhost:8080/api/v1/ventas?clienteId=1
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   CLIENTE (sistema.html, cURL)                   │
+│                   CLIENTE (sistema.html, cURL)                  │
 └────────────────────────┬────────────────────────────────────────┘
                          │ 1. Envía JSON a :8080
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    API Gateway (:8080)                           │
-│  - Recibe la petición HTTP                                       │
+│                    API Gateway (:8080)                          │
+│  - Recibe la petición HTTP                                      │
 │  - Lee el path: /api/v1/ventas/**                               │
-│  - Consulta Eureka para obtener dirección del microservicio      │
-│  - Agrega headers CORS y deduplica Access-Control-Allow-Origin   │
+│  - Consulta Eureka para obtener dirección del microservicio     │
+│  - Agrega headers CORS y deduplica Access-Control-Allow-Origin  │
 └────────────────────────┬────────────────────────────────────────┘
                          │ 2. Enruta a ventas-service
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                  VentaController                                 │
-│  - Recibe request HTTP                                           │
-│  - Mapea JSON → VentaRequest (@RequestBody)                      │
-│  - Valida datos (@Valid)                                         │
-│  - Si hay errores → GlobalExceptionHandler (captura)             │
+│                  VentaController                                │
+│  - Recibe request HTTP                                          │
+│  - Mapea JSON → VentaRequest (@RequestBody)                     │
+│  - Valida datos (@Valid)                                        │
+│  - Si hay errores → GlobalExceptionHandler (captura)            │
 └────────────────────────┬────────────────────────────────────────┘
                          │ 3. Si válido, llama al servicio
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                  VentaService                                    │
-│  - Llama a ClienteClient (Feign → CLIENTES vía Eureka)           │
-│  - Llama a ProductoClient (Feign → PRODUCTOS vía Eureka)         │
-│  - Calcula totalVenta = cantidad × precioUnitario                │
-│  - Auto-asigna fechaVenta = LocalDateTime.now()                  │
-│  - Lanza ResourceNotFoundException si no existe el recurso       │
+│                  VentaService                                   │
+│  - Llama a ClienteClient (Feign → CLIENTES vía Eureka)          │
+│  - Llama a ProductoClient (Feign → PRODUCTOS vía Eureka)        │
+│  - Calcula totalVenta = cantidad × precioUnitario               │
+│  - Auto-asigna fechaVenta = LocalDateTime.now()                 │
+│  - Lanza ResourceNotFoundException si no existe el recurso      │
 └────────────────────────┬────────────────────────────────────────┘
                          │ 4. Persistencia
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                  VentaRepository (JPA)                           │
-│  - Extiende JpaRepository (CRUD automático)                      │
-│  - Conecta con MySQL (db_ventas)                                 │
-│  - Hibernate genera y ejecuta el SQL                             │
+│                  VentaRepository (JPA)                          │
+│  - Extiende JpaRepository (CRUD automático)                     │
+│  - Conecta con MySQL (db_ventas)                                │
+│  - Hibernate genera y ejecuta el SQL                            │
 └────────────────────────┬────────────────────────────────────────┘
                          │ 5. Respuesta
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   CLIENTE (Recibe respuesta JSON)                │
+│                   CLIENTE (Recibe respuesta JSON)               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -607,12 +607,12 @@ curl http://localhost:8080/api/v1/ventas?clienteId=1
 
 El archivo `sistema.html` es una SPA React de un solo archivo que permite gestionar todos los microservicios desde el navegador:
 
-| Tab | Funcionalidades |
-|-----|-----------------|
-| 📦 **Productos** | Listar, buscar por nombre, crear, editar, eliminar |
-| 👤 **Clientes** | Listar, buscar por nombre, crear, editar, eliminar |
-| 🏷️ **Categorías** | Listar, crear, eliminar |
-| 🧾 **Ventas** | Listar, registrar nueva venta (selects de clientes y productos), eliminar |
+| Tab               | Funcionalidades                                                          |
+|-------------------|--------------------------------------------------------------------------|
+| 📦 **Productos**  | Listar, buscar por nombre, crear, editar, eliminar                        |
+| 👤 **Clientes**   | Listar, buscar por nombre, crear, editar, eliminar                        |
+| 🏷️ **Categorías** | Listar, crear, eliminar                                                   |
+| 🧾 **Ventas**     | Listar, registrar nueva venta (selects de clientes y productos), eliminar |
 
 Todas las llamadas pasan por el API Gateway en `http://localhost:8080`.
 
@@ -739,5 +739,3 @@ docker compose logs -f gateway
 ## 📄 Licencia
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT, diseñado para propósitos educativos — **DUOC UC, Ingeniería en Informática, Fullstack I**.
-
----
